@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเบิกของ</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #00B900; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, button { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background-color: #00c300; color: white; font-size: 16px; border: none; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #00a000; }
+        #userNameDisplay { font-weight: bold; color: #555; }
+        #loading { text-align: center; display: none; }
+        #error { color: red; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ฟอร์มเบิกของ</h1>
+        <div id="loading">กำลังโหลดข้อมูล...</div>
+        <div id="error"></div>
+        <form id="requisitionForm" style="display:none;">
+            <div class="form-group">
+                <label>ผู้เบิก:</label>
+                <p id="userNameDisplay"></p>
+            </div>
+            <div class="form-group">
+                <label for="item">รายการของที่ต้องการเบิก:</label>
+                <select id="item" name="item" required>
+                    <option value="ปากกา">ปากกา</option>
+                    <option value="กระดาษ A4">กระดาษ A4</option>
+                    <option value="คลิปหนีบกระดาษ">คลิปหนีบกระดาษ</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="quantity">จำนวน:</label>
+                <input type="number" id="quantity" name="quantity" min="1" required>
+            </div>
+            <button type="submit">ยืนยันการเบิก</button>
+        </form>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+        // ฟังก์ชันหลักที่จะทำงานเมื่อหน้าเว็บโหลด
+        async function main() {
+            // แสดงสถานะกำลังโหลด
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                // 2. Initialize LIFF
+                // =================================================================
+                // PASTE YOUR LIFF ID HERE
+                await liff.init({ liffId: "2008229254-514BVYjZ" });
+                // =================================================================
+
+                // 3. ตรวจสอบสถานะ Login
+                if (!liff.isLoggedIn()) {
+                    liff.login(); // ถ้ายังไม่ login ให้ redirect ไปหน้า login ของ LINE
+                    return;
+                }
+
+                // 4. ดึงข้อมูลโปรไฟล์ผู้ใช้
+                const profile = await liff.getProfile();
+                
+                // แสดงชื่อผู้ใช้บนฟอร์ม
+                document.getElementById('userNameDisplay').textContent = profile.displayName;
+                
+                // ซ่อนสถานะโหลดและแสดงฟอร์ม
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('requisitionForm').style.display = 'block';
+                
+            } catch (err) {
+                // แสดงข้อผิดพลาดหากมีปัญหา
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').textContent = 'เกิดข้อผิดพลาด: ' + err;
+            }
+        }
+
+        // เรียกใช้ฟังก์ชันหลัก
+        main();
+
+        // 5. Event Listener สำหรับดักจับการ Submit ฟอร์ม
+        document.getElementById('requisitionForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // ป้องกันการรีเฟรชหน้า
+
+            // ดึงข้อมูลจากฟอร์ม
+            const userName = document.getElementById('userNameDisplay').textContent;
+            const item = document.getElementById('item').value;
+            const quantity = document.getElementById('quantity').value;
+            
+            const dataToSend = {
+                userId: profile.userId,
+                userName: userName,
+                item: item,
+                quantity: quantity
+            };
+
+            try {
+                // 6. ส่งข้อมูลไปยัง n8n Webhook
+                // =================================================================
+                // PASTE YOUR n8n WEBHOOK TEST URL HERE
+                const webhookUrl = "https://n8n-liff.onrender.com/webhook-test/test";
+                // =================================================================
+                
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dataToSend),
+                });
+
+                if (response.ok) {
+                    alert('ส่งคำขอเบิกของเรียบร้อยแล้ว!');
+                    // 7. ปิดหน้าต่าง LIFF หลังทำงานสำเร็จ
+                    liff.closeWindow();
+                } else {
+                    throw new Error('ไม่สามารถส่งข้อมูลได้');
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + err);
+            }
+        });
+    </script>
+</body>
+</html>
