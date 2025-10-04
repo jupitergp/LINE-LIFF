@@ -56,7 +56,7 @@
 
         try {
             // Initialize LIFF
-            await liff.init({ liffId: "PASTE_YOUR_LIFF_ID_HERE" }); // <<-- อย่าลืมใส่ LIFF ID ของคุณ
+            await liff.init({ liffId: "2008229254-8RozrdqW" }); // <<-- อย่าลืมใส่ LIFF ID ของคุณ
 
             // ตรวจสอบสถานะ Login
             if (!liff.isLoggedIn()) {
@@ -102,7 +102,7 @@
 
         try {
             // ส่งข้อมูลไปยัง n8n Webhook
-            const webhookUrl = "PASTE_YOUR_N8N_WEBHOOK_URL_HERE"; // <<-- อย่าลืมใส่ Webhook URL ของคุณ
+            const webhookUrl = "https://n8n-liff.onrender.com/webhook-test/test"; // <<-- อย่าลืมใส่ Webhook URL ของคุณ
             
             const response = await fetch(webhookUrl, {
                 method: 'POST',
