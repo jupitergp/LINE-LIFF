@@ -46,86 +46,82 @@
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
-        // ฟังก์ชันหลักที่จะทำงานเมื่อหน้าเว็บโหลด
-        async function main() {
-            // แสดงสถานะกำลังโหลด
-            document.getElementById('loading').style.display = 'block';
+    // 1. ย้ายมาประกาศตัวแปรตรงนี้ เพื่อให้ใช้ได้ทั้งใน main() และ addEventListener()
+    let userProfile = {};
 
-            try {
-                // 2. Initialize LIFF
-                // =================================================================
-                // PASTE YOUR LIFF ID HERE
-                await liff.init({ liffId: "2008229254-514BVYjZ" });
-                // =================================================================
+    // ฟังก์ชันหลักที่จะทำงานเมื่อหน้าเว็บโหลด
+    async function main() {
+        // แสดงสถานะกำลังโหลด
+        document.getElementById('loading').style.display = 'block';
 
-                // 3. ตรวจสอบสถานะ Login
-                if (!liff.isLoggedIn()) {
-                    liff.login(); // ถ้ายังไม่ login ให้ redirect ไปหน้า login ของ LINE
-                    return;
-                }
+        try {
+            // Initialize LIFF
+            await liff.init({ liffId: "PASTE_YOUR_LIFF_ID_HERE" }); // <<-- อย่าลืมใส่ LIFF ID ของคุณ
 
-                // 4. ดึงข้อมูลโปรไฟล์ผู้ใช้
-                const profile = await liff.getProfile();
-                
-                // แสดงชื่อผู้ใช้บนฟอร์ม
-                document.getElementById('userNameDisplay').textContent = profile.displayName;
-                
-                // ซ่อนสถานะโหลดและแสดงฟอร์ม
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('requisitionForm').style.display = 'block';
-                
-            } catch (err) {
-                // แสดงข้อผิดพลาดหากมีปัญหา
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').textContent = 'เกิดข้อผิดพลาด: ' + err;
+            // ตรวจสอบสถานะ Login
+            if (!liff.isLoggedIn()) {
+                liff.login();
+                return;
             }
-        }
 
-        // เรียกใช้ฟังก์ชันหลัก
-        main();
-
-        // 5. Event Listener สำหรับดักจับการ Submit ฟอร์ม
-        document.getElementById('requisitionForm').addEventListener('submit', async function(event) {
-            event.preventDefault(); // ป้องกันการรีเฟรชหน้า
-
-            // ดึงข้อมูลจากฟอร์ม
-            const userName = document.getElementById('userNameDisplay').textContent;
-            const item = document.getElementById('item').value;
-            const quantity = document.getElementById('quantity').value;
+            // 2. เปลี่ยนจาก const profile เป็นการกำหนดค่าให้ userProfile ที่ประกาศไว้ด้านนอก
+            userProfile = await liff.getProfile();
             
-            const dataToSend = {
-                userId: profile.userId,
-                userName: userName,
-                item: item,
-                quantity: quantity
-            };
+            // 3. เปลี่ยนมาใช้ userProfile เพื่อแสดงผล
+            document.getElementById('userNameDisplay').textContent = userProfile.displayName;
+            
+            // ซ่อนสถานะโหลดและแสดงฟอร์ม
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('requisitionForm').style.display = 'block';
+            
+        } catch (err) {
+            // แสดงข้อผิดพลาดหากมีปัญหา
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').textContent = 'เกิดข้อผิดพลาด: ' + err;
+        }
+    }
 
-            try {
-                // 6. ส่งข้อมูลไปยัง n8n Webhook
-                // =================================================================
-                // PASTE YOUR n8n WEBHOOK TEST URL HERE
-                const webhookUrl = "https://n8n-liff.onrender.com/webhook-test/test";
-                // =================================================================
-                
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dataToSend),
-                });
+    // เรียกใช้ฟังก์ชันหลัก
+    main();
 
-                if (response.ok) {
-                    alert('ส่งคำขอเบิกของเรียบร้อยแล้ว!');
-                    // 7. ปิดหน้าต่าง LIFF หลังทำงานสำเร็จ
-                    liff.closeWindow();
-                } else {
-                    throw new Error('ไม่สามารถส่งข้อมูลได้');
-                }
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + err);
+    // Event Listener สำหรับดักจับการ Submit ฟอร์ม
+    document.getElementById('requisitionForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        // ดึงข้อมูลจากฟอร์ม
+        const item = document.getElementById('item').value;
+        const quantity = document.getElementById('quantity').value;
+        
+        const dataToSend = {
+            // 4. แก้ไขให้ใช้ userProfile ซึ่งตอนนี้สามารถมองเห็นได้แล้ว
+            userId: userProfile.userId, 
+            userName: userProfile.displayName,
+            item: item,
+            quantity: quantity
+        };
+
+        try {
+            // ส่งข้อมูลไปยัง n8n Webhook
+            const webhookUrl = "PASTE_YOUR_N8N_WEBHOOK_URL_HERE"; // <<-- อย่าลืมใส่ Webhook URL ของคุณ
+            
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dataToSend),
+            });
+
+            if (response.ok) {
+                alert('ส่งคำขอเบิกของเรียบร้อยแล้ว!');
+                liff.closeWindow();
+            } else {
+                throw new Error('ไม่สามารถส่งข้อมูลได้');
             }
-        });
-    </script>
+        } catch (err) {
+            alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + err);
+        }
+    });
+</script>
 </body>
 </html>
